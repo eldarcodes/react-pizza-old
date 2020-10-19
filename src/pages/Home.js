@@ -6,6 +6,8 @@ import {useDispatch, useSelector} from 'react-redux'
 import {setCategory} from '../redux/actions/filters'
 import {fetchPizzas} from '../redux/actions/pizzas'
 import LoadingBlock from '../components/PizzaBlock/LoadingBlock'
+import {setSortBy} from './../redux/actions/filters'
+import {addPizzaToCart} from './../redux/actions/cart'
 
 const categoriesNames = [
   'Мясные',
@@ -19,11 +21,12 @@ const Home = () => {
   const dispatch = useDispatch()
   const items = useSelector(({pizzas}) => pizzas.items)
   const isLoaded = useSelector(({pizzas}) => pizzas.isLoaded)
+  const cartItems = useSelector(({cart}) => cart.items)
   const {category, sortBy} = useSelector(({filters}) => filters)
 
   React.useEffect(() => {
-    dispatch(fetchPizzas())
-  }, [category])
+    dispatch(fetchPizzas(sortBy, category))
+  }, [category, sortBy, dispatch])
 
   const onSelectCategory = React.useCallback(
     (index) => {
@@ -31,6 +34,17 @@ const Home = () => {
     },
     [dispatch]
   )
+
+  const onSelectSortType = React.useCallback(
+    (type) => {
+      dispatch(setSortBy(type))
+    },
+    [dispatch]
+  )
+
+  const handleAddPizzaToCart = (obj) => {
+    dispatch(addPizzaToCart(obj))
+  }
 
   return (
     <div className="container">
@@ -42,16 +56,25 @@ const Home = () => {
         />
         <SortPopup
           items={[
-            {name: 'популярности', type: 'popular'},
-            {name: 'цене', type: 'price'},
-            {name: 'алфавит', type: 'alphaber'},
+            {name: 'популярности', type: 'rating', order: 'desc'},
+            {name: 'цене', type: 'price', order: 'desc'},
+            {name: 'алфавит', type: 'name', order: 'asc'},
           ]}
+          activeSortType={sortBy.type}
+          sortHandler={onSelectSortType}
         />
       </div>
       <h2 className="content__title">Все пиццы</h2>
       <div className="content__items">
         {isLoaded
-          ? items.map((obj) => <PizzaBlock key={obj.id} {...obj} />)
+          ? items.map((obj) => (
+              <PizzaBlock
+                onClickAddPizza={handleAddPizzaToCart}
+                key={obj.id}
+                cartCount={cartItems[obj.id] && cartItems[obj.id].length}
+                {...obj}
+              />
+            ))
           : Array(12)
               .fill(0)
               .map((_, index) => <LoadingBlock key={index} />)}
